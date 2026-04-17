@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+
+APP_DIR="/Applications/Recbert AI.app"
+BACKEND_PATH="$APP_DIR/Contents/Resources/backend"
+PYTHON_EXE="$APP_DIR/Contents/Resources/python/bin/python3"
+CONFIG_PATH="$APP_DIR/Contents/Resources/app/config.json"
+LOG_FILE="$APP_DIR/Contents/Resources/install.log"
+
+echo "=== Recbert AI Install Log ===" > "$LOG_FILE"
+echo "AppDir: $APP_DIR" >> "$LOG_FILE"
+echo "PythonExe: $PYTHON_EXE" >> "$LOG_FILE"
+
+if [ ! -f "$PYTHON_EXE" ]; then
+  echo "FATAL: python not found at $PYTHON_EXE" >> "$LOG_FILE"
+  osascript -e 'display alert "Recbert AI" message "Installation failed: Python not found." as critical'
+  exit 1
+fi
+
+echo "[pip] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" "$APP_DIR/Contents/Resources/python/get-pip.py" --no-warn-script-location >> "$LOG_FILE" 2>&1
+echo "[pip] Exit code: $?" >> "$LOG_FILE"
+
+echo "[torch] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu --no-warn-script-location >> "$LOG_FILE" 2>&1
+echo "[torch] Exit code: $?" >> "$LOG_FILE"
+
+echo "[requirements] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" -m pip install -r "$BACKEND_PATH/requirements.txt" --no-warn-script-location >> "$LOG_FILE" 2>&1
+echo "[requirements] Exit code: $?" >> "$LOG_FILE"
+
+echo "[tools] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" -m pip install setuptools --no-warn-script-location >> "$LOG_FILE" 2>&1
+echo "[tools] Exit code: $?" >> "$LOG_FILE"
+
+echo "[verify-flask] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" -c "import flask; print('flask', flask.__version__)" >> "$LOG_FILE" 2>&1
+echo "[verify-flask] Exit code: $?" >> "$LOG_FILE"
+
+echo "[verify-torch] Running..." >> "$LOG_FILE"
+"$PYTHON_EXE" -c "import torch; print('torch', torch.__version__)" >> "$LOG_FILE" 2>&1
+echo "[verify-torch] Exit code: $?" >> "$LOG_FILE"
+
+echo "[config] Writing config.json..." >> "$LOG_FILE"
+cat > "$CONFIG_PATH" <<EOF
+{
+  "backendPath": "$BACKEND_PATH",
+  "pythonExecutable": "$PYTHON_EXE",
+  "flaskPort": 5000,
+  "autoStartBackend": true
+}
+EOF
+echo "[config] Exit code: $?" >> "$LOG_FILE"
+
+echo "=== Install complete ===" >> "$LOG_FILE"
+exit 0
