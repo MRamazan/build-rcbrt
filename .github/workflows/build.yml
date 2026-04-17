@@ -1,0 +1,86 @@
+name: Build Recbert AI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: npm run build
+
+      - name: Download model file
+        run: |
+          $url = "https://drive.google.com/uc?export=download&id=1_yHlaMyk915kA5m66ZzKfJ7LdbuNTWNq"
+          $dest = "Data\AnimeRatings\pretrained_bert.pth"
+          New-Item -ItemType Directory -Force -Path "Data\AnimeRatings"
+          Invoke-WebRequest -Uri $url -OutFile $dest
+        shell: powershell
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build Windows installer
+        run: iscc installer.iss
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecbertAI-Windows
+          path: Output\RecbertAI-Setup.exe
+          retention-days: 30
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Download model file
+        run: |
+          pip3 install gdown --break-system-packages
+          mkdir -p Data/AnimeRatings
+          gdown "1_yHlaMyk915kA5m66ZzKfJ7LdbuNTWNq" -O Data/AnimeRatings/pretrained_bert.pth
+
+      - name: Download Python standalone for macOS
+        run: |
+          curl -L "https://github.com/indygreg/python-build-standalone/releases/download/20240713/cpython-3.11.9+20240713-x86_64-apple-darwin-install_only.tar.gz" -o python-mac-x64.tar.gz
+          mkdir -p python-embed-mac
+          tar -xzf python-mac-x64.tar.gz -C python-embed-mac --strip-components=1
+
+      - name: Build macOS DMG
+        run: npx electron-builder --mac --x64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecbertAI-macOS
+          path: dist/*.dmg
+          retention-days: 30
