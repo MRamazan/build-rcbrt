@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Öneri Uygulaması</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='purpletheme.css') }}" id="theme-purple">
+    <link rel="preload" href="{{ url_for('static', filename='purpletheme.css') }}" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Page Loader -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-spinner"></div>
+        <span class="loader-text">Yükleniyor...</span>
+    </div>
+
+    <!-- Background Pattern -->
+    <div class="background-pattern"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div class="custom-confirm-modal" id="customConfirmModal">
+        <div class="custom-confirm-content">
+            <div class="confirm-header">
+                <h3 id="confirmTitle">Emin misiniz?</h3>
+            </div>
+            <div class="confirm-message">
+                <p id="confirmMessage">Bu işlemi gerçekleştirmek istediğinizden emin misiniz?</p>
+            </div>
+            <div class="confirm-actions">
+                <button class="confirm-btn cancel" id="confirmCancel">İptal</button>
+                <button class="confirm-btn confirm" id="confirmOk">Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blacklist Modal -->
+    <div class="blacklist-modal" id="blacklistModal">
+        <div class="blacklist-content">
+            <div class="blacklist-header">
+                <span class="blacklist-title">🚫 Kara Liste</span>
+                <button class="blacklist-close" id="blacklistClose">✕</button>
+            </div>
+            <div id="blacklistItems">
+                <div class="empty-blacklist">Kara listede anime yok.</div>
+            </div>
+            <div class="blacklist-actions">
+                <button class="clear-blacklist-btn" id="clearBlacklistBtn">Tümünü Temizle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blacklist Floating Button -->
+    <button class="blacklist-button" id="blacklistBtn" title="Kara Listeyi Göster">
+        🚫
+        <span class="blacklist-counter" id="blacklistCounter">0</span>
+    </button>
+
+    <!-- Back Button -->
+    <button class="back-button" id="backButton">← Geri</button>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 3L21 8V18L13 23L5 18V8L13 3Z" fill="white" opacity="0.9"/>
+                        <circle cx="13" cy="13" r="4" fill="rgba(255,255,255,0.3)"/>
+                    </svg>
+                </div>
+                <span class="logo-text">AnimeAI</span>
+            </div>
+
+            <!-- Theme Switcher -->
+            <div class="theme-switcher" id="themeSwitcher">
+                <button class="theme-switcher-toggle" id="themeSwitcherToggle">🎨</button>
+                <div class="theme-options" id="themeOptions">
+                    <div class="theme-option theme-purple active" data-theme="purple">
+                        <span class="theme-color"></span>
+                        Mor Tema
+                    </div>
+                    <div class="theme-option theme-green" data-theme="green">
+                        <span class="theme-color"></span>
+                        Yeşil Tema
+                    </div>
+                    <div class="theme-option theme-orange" data-theme="orange">
+                        <span class="theme-color"></span>
+                        Turuncu Tema
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Title -->
+        <div class="page-title-section">
+            <h1>🎌 Anime Öneri Motoru</h1>
+            <p>Favori animelerini ekle, yapay zeka sana en uygun önerileri sunsun</p>
+        </div>
+
+        <main>
+            <!-- Favorites Section -->
+            <section class="favorites-section">
+                <h2 class="section-title">
+                    <span class="section-title-icon">⭐</span>
+                    Favori Animelerim
+                </h2>
+
+                <!-- Search -->
+                <div class="search-container">
+                    <input
+                        type="text"
+                        class="search-input"
+                        id="animeSearch"
+                        placeholder="Anime ara ve ekle... (ör: Attack on Titan)"
+                        autocomplete="off"
+                    >
+                    <span class="search-icon">🔍</span>
+                    <div class="anime-dropdown" id="animeDropdown"></div>
+                </div>
+
+                <!-- Favorites List -->
+                <div class="favorites-list" id="favoritesList">
+                    <span class="empty-state">Henüz anime eklenmedi. Yukarıdan arama yaparak başlayın!</span>
+                </div>
+
+                <!-- Genre Filters -->
+                <div class="filter-buttons" id="filterButtons">
+                    <button class="filter-btn active" data-filter="all">
+                        <span class="filter-icon">🌐</span> Tümü
+                    </button>
+                    <button class="filter-btn" data-filter="action">
+                        <span class="filter-icon">⚔️</span> Aksiyon
+                    </button>
+                    <button class="filter-btn" data-filter="romance">
+                        <span class="filter-icon">💕</span> Romantik
+                    </button>
+                    <button class="filter-btn" data-filter="fantasy">
+                        <span class="filter-icon">🧙</span> Fantezi
+                    </button>
+                    <button class="filter-btn" data-filter="comedy">
+                        <span class="filter-icon">😂</span> Komedi
+                    </button>
+                    <button class="filter-btn" data-filter="thriller">
+                        <span class="filter-icon">🔥</span> Gerilim
+                    </button>
+                    <button class="filter-btn" data-filter="scifi">
+                        <span class="filter-icon">🚀</span> Bilim Kurgu
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="getRecommendationsBtn">
+                        ✨ Öneri Al
+                    </button>
+                    <button class="btn btn-secondary" id="clearFavoritesBtn">
+                        🗑️ Temizle
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div class="loading" id="loadingState" style="display: none;">
+                <div class="spinner"></div>
+                Öneriler hazırlanıyor...
+            </div>
+
+            <!-- Recommendations Section -->
+            <section class="recommendations-section" id="recommendationsSection">
+                <h2 class="section-title" style="margin-bottom: 0.5rem;">
+                    <span class="section-title-icon">🎯</span>
+                    Senin İçin Öneriler
+                </h2>
+                <p style="color: var(--text-gray); margin-bottom: 0.5rem; font-size: 0.95rem;">
+                    Karta tıklayarak arka yüzü ve MAL linkini görebilirsin
+                </p>
+
+                <div class="recommendations-grid" id="recommendationsGrid">
+                    <!-- Cards generated by JS -->
+                </div>
+
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <button class="apply-filters-btn" id="refreshBtn">🔄 Yeni Öneriler Al</button>
+                </div>
+            </section>
+
+            <!-- About Section -->
+            <section class="about-section">
+                <h2 class="section-title" style="margin-bottom: 1.75rem;">
+                    <span class="section-title-icon">ℹ️</span>
+                    Nasıl Çalışır?
+                </h2>
+                <div class="about-content">
+                    <div class="about-item">
+                        <h3>🔍 Akıllı Analiz</h3>
+                        <p>Favori animelerini analiz ederek türlerine, temalarına ve izleyici puanlarına göre sana en uygun yapıtları bulur.</p>
+                    </div>
+                    <div class="about-item">
+                        <h3>🎯 Kişiselleştirilmiş</h3>
+                        <p>Her kullanıcının zevkine özel öneriler sunar. Ne kadar çok anime eklersen, öneriler o kadar isabetli olur.</p>
+                    </div>
+                    <div class="about-item">
+                        <h3>📊 MAL Entegrasyonu</h3>
+                        <p>MyAnimeList veritabanından beslenir; güncel puanlar, episod sayısı ve detaylı bilgilere anında ulaşırsın.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Preload div for critical animations -->
+    <div class="preload-animations" aria-hidden="true"></div>
+
+    <script>
+        // =============================================
+        //  PAGE LOAD & THEME
+        // =============================================
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('pageLoader').classList.add('hidden');
+                document.documentElement.classList.add('loaded');
+            }, 400);
+        });
+
+        // Theme Switcher
+        const themeSwitcherToggle = document.getElementById('themeSwitcherToggle');
+        const themeOptions = document.getElementById('themeOptions');
+
+        themeSwitcherToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeOptions.classList.toggle('show');
+        });
+
+        document.addEventListener('click', () => {
+            themeOptions?.classList.remove('show');
+        });
+
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                themeOptions.classList.remove('show');
+                // Theme switching logic can be extended here
+            });
+        });
+
+        // =============================================
+        //  STATE
+        // =============================================
+        let favorites = JSON.parse(localStorage.getItem('animeFavorites') || '[]');
+        let blacklist = JSON.parse(localStorage.getItem('animeBlacklist') || '[]');
+        let activeFilter = 'all';
+        let confirmCallback = null;
+
+        // =============================================
+        //  CUSTOM CONFIRM
+        // =============================================
+        function showConfirm(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            confirmCallback = onConfirm;
+            document.getElementById('customConfirmModal').classList.add('show');
+        }
+
+        document.getElementById('confirmCancel').addEventListener('click', () => {
+            document.getElementById('customConfirmModal').classList.remove('show');
+            confirmCallback = null;
+        });
+
+        document.getElementById('confirmOk').addEventListener('click', () => {
+            document.getElementById('customConfirmModal').classList.remove('show');
+            if (confirmCallback) confirmCallback();
+            confirmCallback = null;
+        });
+
+        // =============================================
+        //  FAVORITES
+        // =============================================
+        function saveFavorites() {
+            localStorage.setItem('animeFavorites', JSON.stringify(favorites));
+        }
+
+        function renderFavorites() {
+            const list = document.getElementById('favoritesList');
+            if (favorites.length === 0) {
+                list.innerHTML = '<span class="empty-state">Henüz anime eklenmedi. Yukarıdan arama yaparak başlayın!</span>';
+                return;
+            }
+            list.innerHTML = favorites.map(anime => `
+                <span class="favorite-tag">
+                    ${anime}
+                    <button class="remove-btn" onclick="removeFavorite('${anime.replace(/'/g, "\\'")}')">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function addFavorite(animeName) {
+            if (!favorites.includes(animeName) && !blacklist.includes(animeName)) {
+                favorites.push(animeName);
+                saveFavorites();
+                renderFavorites();
+            }
+        }
+
+        function removeFavorite(animeName) {
+            favorites = favorites.filter(a => a !== animeName);
+            saveFavorites();
+            renderFavorites();
+        }
+
+        document.getElementById('clearFavoritesBtn').addEventListener('click', () => {
+            if (favorites.length === 0) return;
+            showConfirm('Favorileri Temizle', 'Tüm favori animeler silinecek. Devam etmek istiyor musunuz?', () => {
+                favorites = [];
+                saveFavorites();
+                renderFavorites();
+            });
+        });
+
+        renderFavorites();
+
+        // =============================================
+        //  SEARCH & DROPDOWN
+        // =============================================
+        const animeSearch = document.getElementById('animeSearch');
+        const animeDropdown = document.getElementById('animeDropdown');
+        let searchTimeout;
+
+        animeSearch.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const query = animeSearch.value.trim();
+            if (query.length < 2) {
+                closeDropdown();
+                return;
+            }
+            searchTimeout = setTimeout(() => searchAnime(query), 350);
+        });
+
+        animeSearch.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDropdown();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!animeSearch.contains(e.target) && !animeDropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        async function searchAnime(query) {
+            try {
+                const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=8&order_by=score&sort=desc`);
+                const data = await res.json();
+                showDropdown(data.data || []);
+            } catch {
+                showDropdown([]);
+            }
+        }
+
+        function showDropdown(animes) {
+            if (animes.length === 0) {
+                closeDropdown();
+                return;
+            }
+            animeDropdown.innerHTML = animes.map(a => `
+                <div class="anime-option" onclick="selectAnime('${(a.title || '').replace(/'/g, "\\'")}')">
+                    ${a.title}${a.score ? ` <span style="color:var(--primary);font-weight:700;font-size:0.82rem;margin-left:6px;">★ ${a.score}</span>` : ''}
+                </div>
+            `).join('');
+            animeDropdown.style.display = 'block';
+            requestAnimationFrame(() => animeDropdown.classList.add('show'));
+        }
+
+        function closeDropdown() {
+            animeDropdown.classList.remove('show');
+            setTimeout(() => { animeDropdown.style.display = 'none'; }, 250);
+        }
+
+        function selectAnime(name) {
+            addFavorite(name);
+            animeSearch.value = '';
+            closeDropdown();
+        }
+
+        // =============================================
+        //  FILTERS
+        // =============================================
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+            });
+        });
+
+        // =============================================
+        //  RECOMMENDATIONS
+        // =============================================
+        document.getElementById('getRecommendationsBtn').addEventListener('click', fetchRecommendations);
+        document.getElementById('refreshBtn')?.addEventListener('click', fetchRecommendations);
+
+        async function fetchRecommendations() {
+            if (favorites.length === 0) {
+                alert('Lütfen önce en az bir favori anime ekleyin!');
+                return;
+            }
+
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('recommendationsSection').style.display = 'none';
+
+            try {
+                const recommendations = await getRecommendationsFromAPI();
+                renderRecommendations(recommendations);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loadingState').style.display = 'none';
+                alert('Öneriler alınırken bir hata oluştu. Lütfen tekrar deneyin.');
+            }
+        }
+
+        async function getRecommendationsFromAPI() {
+            const animeList = favorites.join(', ');
+            const filterText = activeFilter !== 'all' ? `Tür tercihi: ${activeFilter}.` : '';
+
+            const prompt = `Sen bir anime uzmanısın. Kullanıcının favori animeleri şunlar: ${animeList}.
+${filterText}
+Kara listedeki animeler (önerme): ${blacklist.join(', ') || 'yok'}.
+
+Bu favorilere benzer, kullanıcının sevebileceği 8 farklı anime öner.
+Sadece JSON dizisi döndür, başka hiçbir şey yazma:
+[
+  {
+    "title": "Anime Adı (İngilizce)",
+    "reason": "Neden önerdim (1-2 cümle, Türkçe)",
+    "genres": ["tür1", "tür2"],
+    "score": 8.5,
+    "episodes": 24,
+    "year": 2020,
+    "status": "Tamamlandı",
+    "malUrl": "https://myanimelist.net/anime/XXXX"
+  }
+]`;
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1500,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            const data = await response.json();
+            const text = data.content?.[0]?.text || '[]';
+            const clean = text.replace(/```json|```/g, '').trim();
+            return JSON.parse(clean);
+        }
+
+        function renderRecommendations(animes) {
+            document.getElementById('loadingState').style.display = 'none';
+            const section = document.getElementById('recommendationsSection');
+            const grid = document.getElementById('recommendationsGrid');
+            section.style.display = 'block';
+
+            if (!animes || animes.length === 0) {
+                grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);">Öneri bulunamadı.</p>';
+                return;
+            }
+
+            grid.innerHTML = animes.map((anime, i) => {
+                const genres = (anime.genres || []).slice(0, 3).map(g =>
+                    `<span class="genre-tag-front">${g}</span>`
+                ).join('');
+
+                return `
+                <div class="anime-card-wrapper" style="animation-delay:${i * 0.08}s">
+                    <div class="anime-rank"></div>
+                    <div class="anime-card" onclick="flipCard(this)">
+                        <div class="content">
+                            <div class="card-inner">
+                                <div class="card-front">
+                                    <div class="anime-image-container">
+                                        <div class="image-loading" id="img-loading-${i}">⏳</div>
+                                        <img
+                                            class="anime-image"
+                                            alt="${anime.title}"
+                                            style="display:none;"
+                                            onload="this.style.display='block'; document.getElementById('img-loading-${i}').style.display='none';"
+                                        >
+                                        <div class="no-image-placeholder" id="img-placeholder-${i}" style="display:none;">🎬</div>
+                                    </div>
+                                    <div class="anime-info">
+                                        <div class="anime-name">${anime.title}</div>
+                                        <div class="anime-bottom-section">
+                                            <div class="genres-container-front">${genres}</div>
+                                        </div>
+                                        <div class="flip-hint">↩ Detaylar için tıkla</div>
+                                    </div>
+                                    <div class="anime-score">⭐ ${anime.score || '?'}</div>
+                                    <button class="already-watched-btn" onclick="addToBlacklist(event, '${anime.title.replace(/'/g, "\\'")}')">
+                                        ✓ İzledim
+                                    </button>
+                                </div>
+                                <div class="card-back">
+                                    <div class="mal-button-container">
+                                        <p style="font-size:0.9rem;opacity:0.85;margin-bottom:8px;line-height:1.5;">${anime.reason || ''}</p>
+                                        <p style="font-size:0.8rem;opacity:0.65;margin-bottom:16px;">
+                                            📺 ${anime.episodes || '?'} bölüm · 📅 ${anime.year || '?'} · ${anime.status || ''}
+                                        </p>
+                                        ${anime.malUrl ? `
+                                        <a href="${anime.malUrl}" target="_blank" rel="noopener noreferrer" class="mal-button" onclick="event.stopPropagation()">
+                                            <img src="https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png" class="mal-logo" alt="MAL">
+                                            MAL'da Gör
+                                        </a>` : ''}
+                                        <p class="mal-message">Kartı tekrar tıkla → ön yüze dön</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="delete-button" onclick="deleteCard(event, this)" title="Kaldır">✕</button>
+                </div>`;
+            }).join('');
+
+            // Fetch images from Jikan
+            animes.forEach((anime, i) => fetchAnimeImage(anime.title, i));
+
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function fetchAnimeImage(title, index) {
+            try {
+                const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1`);
+                const data = await res.json();
+                const img = data.data?.[0]?.images?.jpg?.large_image_url;
+                if (img) {
+                    const imgEl = document.querySelectorAll('.anime-image')[index];
+                    const placeholder = document.getElementById(`img-placeholder-${index}`);
+                    if (imgEl) {
+                        imgEl.src = img;
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                } else {
+                    showPlaceholder(index);
+                }
+            } catch {
+                showPlaceholder(index);
+            }
+        }
+
+        function showPlaceholder(index) {
+            const loading = document.getElementById(`img-loading-${index}`);
+            const placeholder = document.getElementById(`img-placeholder-${index}`);
+            if (loading) loading.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'flex';
+        }
+
+        function flipCard(card) {
+            const inner = card.querySelector('.card-inner');
+            inner.classList.toggle('flipped');
+        }
+
+        function deleteCard(e, btn) {
+            e.stopPropagation();
+            const wrapper = btn.closest('.anime-card-wrapper');
+            wrapper.style.animation = 'fadeOut 0.3s ease forwards';
+            setTimeout(() => wrapper.remove(), 280);
+        }
+
+        // =============================================
+        //  BLACKLIST
+        // =============================================
+        function saveBlacklist() {
+            localStorage.setItem('animeBlacklist', JSON.stringify(blacklist));
+        }
+
+        function updateBlacklistCounter() {
+            const counter = document.getElementById('blacklistCounter');
+            counter.textContent = blacklist.length;
+            const btn = document.getElementById('blacklistBtn');
+            if (blacklist.length > 0) {
+                btn.classList.add('show');
+            } else {
+                btn.classList.remove('show');
+            }
+        }
+
+        function renderBlacklistItems() {
+            const container = document.getElementById('blacklistItems');
+            if (blacklist.length === 0) {
+                container.innerHTML = '<div class="empty-blacklist">Kara listede anime yok.</div>';
+                return;
+            }
+            container.innerHTML = blacklist.map(name => `
+                <div class="blacklist-item">
+                    <span class="blacklist-name">${name}</span>
+                    <button class="remove-blacklist-btn" onclick="removeFromBlacklist('${name.replace(/'/g, "\\'")}')">Geri Al</button>
+                </div>
+            `).join('');
+        }
+
+        function addToBlacklist(e, animeName) {
+            e.stopPropagation();
+            if (!blacklist.includes(animeName)) {
+                blacklist.push(animeName);
+                saveBlacklist();
+                updateBlacklistCounter();
+            }
+            // Remove card
+            const card = e.target.closest('.anime-card-wrapper');
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(30px)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => card.remove(), 290);
+            }
+        }
+
+        function removeFromBlacklist(animeName) {
+            blacklist = blacklist.filter(a => a !== animeName);
+            saveBlacklist();
+            updateBlacklistCounter();
+            renderBlacklistItems();
+        }
+
+        document.getElementById('blacklistBtn').addEventListener('click', () => {
+            renderBlacklistItems();
+            document.getElementById('blacklistModal').classList.add('show');
+        });
+
+        document.getElementById('blacklistClose').addEventListener('click', () => {
+            document.getElementById('blacklistModal').classList.remove('show');
+        });
+
+        document.getElementById('blacklistModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('blacklistModal')) {
+                document.getElementById('blacklistModal').classList.remove('show');
+            }
+        });
+
+        document.getElementById('clearBlacklistBtn').addEventListener('click', () => {
+            if (blacklist.length === 0) return;
+            showConfirm('Kara Listeyi Temizle', 'Tüm kara liste temizlenecek. Devam etmek istiyor musunuz?', () => {
+                blacklist = [];
+                saveBlacklist();
+                updateBlacklistCounter();
+                renderBlacklistItems();
+            });
+        });
+
+        updateBlacklistCounter();
+
+        // CSS fadeOut keyframe
+        const style = document.createElement('style');
+        style.textContent = `@keyframes fadeOut { to { opacity: 0; transform: translateY(-10px) scale(0.96); } }`;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

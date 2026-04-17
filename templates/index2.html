@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Recommendation System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='purpletheme.css') }}" id="theme-purple">
+    <link rel="preload" href="{{ url_for('static', filename='purpletheme.css') }}" as="style">
+
+    <style>
+        html { visibility: hidden; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        html.loaded { visibility: visible; opacity: 1; }
+
+        .page-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; opacity: 1; transition: opacity 0.5s ease-out;
+        }
+        .page-loader.hidden { opacity: 0; pointer-events: none; }
+        .loader-spinner {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .preload-animations { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+
+        .theme-option:hover { background: rgba(255,255,255,0.1); transform: translateX(3px); }
+        .theme-option.active { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); }
+        .theme-color { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); transition:all 0.3s ease; }
+        .theme-option.active .theme-color { border-color:rgba(255,255,255,0.8); box-shadow:0 0 10px rgba(255,255,255,0.3); }
+        .theme-purple .theme-color { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
+        .theme-green .theme-color  { background: linear-gradient(45deg,#4caf50,#2e7d32); }
+        .theme-orange .theme-color { background: linear-gradient(45deg,#ffa500,#ff4500); }
+
+     
+        .ptw-top-btn {
+            position: fixed;
+            top: 28px;
+            right: 28px;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-card);
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+        .ptw-top-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        .ptw-top-badge {
+            background: white;
+            color: var(--primary);
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+      
+        .ptw-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        .ptw-empty-state {
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 3rem 0;
+            font-size: 0.95rem;
+        }
+
+
+.ptw-card-remove-btn {
+    position: static !important;
+    background: white;
+    border: 2px solid linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #343d46;
+    padding: 6px 13px;
+    border-radius: 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+
+    background: var(--ultra-light);
+    border: 1px solid var(--light);
+    color: var(--text-mid);
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.80rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--light);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.ptw-card-remove-btn:hover {
+    background: #e53e3e;
+    border: 2px solid linear-gradient(135deg, var(--primary), var(--secondary));
+
+    color: white;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 18px rgba(229, 62, 62, 0.35);
+}
+
+  
+        .card-action-row {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            display: flex;
+            gap: 6px;
+            z-index: 20;
+        }
+
+        .card-action-row .already-watched-btn,
+        .card-action-row .plan-to-watch-btn {
+            position: static !important;
+            bottom: auto !important;
+            right: auto !important;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: #fff;
+            padding: 7px 14px;
+            border-radius: 18px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px var(--shadow);
+            font-family: 'Outfit', sans-serif;
+            white-space: nowrap;
+        }
+
+        .card-action-row .already-watched-btn:hover,
+        .card-action-row .plan-to-watch-btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 20px var(--shadow-strong);
+        }
+
+
+.card-action-row .plan-to-watch-btn.added {
+    background: white !important;
+  
+    color: #2e7d32 !important;
+    box-shadow: none;
+    cursor: pointer;
+}
+.card-action-row .plan-to-watch-btn.added:hover {
+    background: #e53e3e !important;
+    border-color: #4caf50 !important;
+    color: white !important;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.35) !important;
+}
+
+ 
+        .ptw-btn-text-added  { display: inline; }
+        .ptw-btn-text-remove { display: none; }
+
+        .plan-to-watch-btn.added:hover .ptw-btn-text-added  { display: none; }
+        .plan-to-watch-btn.added:hover .ptw-btn-text-remove { display: inline; }
+
+        @media (max-width: 768px) {
+    .ptw-export-btn {
+        top: 15px;
+        right: 165px;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    .export-content-options { flex-direction: column; }
+    .export-option-card { min-width: unset; }
+    .export-option-inner { flex-direction: row; justify-content: flex-start; padding: 10px 14px; }
+}
+
+.ptw-drag-handle {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 30;
+    cursor: grab;
+    color: var(--text-light);
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    padding: 5px 4px;
+    border-radius: 6px;
+    line-height: 1;
+    user-select: none;
+    background: rgba(255,255,255,0.08);
+}
+.anime-card-wrapper:hover .ptw-drag-handle { opacity: 0.65; }
+.ptw-drag-handle:hover { opacity: 1 !important; background: rgba(255,255,255,0.2); }
+.ptw-drag-handle:active { cursor: grabbing; }
+
+.anime-card-wrapper.ptw-dragging {
+    opacity: 0.25;
+    transform: scale(0.96);
+}
+.anime-card-wrapper.ptw-shift-up {
+    transform: translateY(-6px);
+}
+.anime-card-wrapper.ptw-shift-down {
+    transform: translateY(6px);
+}
+#ptwGrid .anime-card-wrapper {
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity 0.2s ease;
+}
+    </style>
+</head>
+<body>
+
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <div class="preload-animations">
+        <div class="theme-switcher-toggle"></div>
+        <div class="theme-option"></div>
+        <div class="anime-card"></div>
+    </div>
+
+    <!-- Top-right Plan to Watch button -->
+    <button class="ptw-top-btn" onclick="showPtwSection()">
+        Plan to Watch
+        <span class="ptw-top-badge" id="ptwTopBadge">0</span>
+    </button>
+    <!-- Export Button (PTW'nin sağına sabitlenmiş) -->
+<button class="ptw-export-btn" id="ptwExportBtn" onclick="openExportModal()" title="Export Plan to Watch list">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    Export
+</button>
+
+<!-- Export Modal -->
+<div class="export-modal-overlay" id="exportModalOverlay" onclick="closeExportModal()"></div>
+<div class="export-modal" id="exportModal">
+    <div class="export-modal-header">
+        <div class="export-modal-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export "Plan to Watch" List
+        </div>
+        <button class="export-modal-close" onclick="closeExportModal()">×</button>
+    </div>
+
+    <div class="export-modal-body">
+        <div class="export-group">
+            <div class="export-group-label">File Format</div>
+            <div class="export-options-row">
+                <label class="export-option-card">
+                    <input type="radio" name="exportFormat" value="txt" checked>
+                    <div class="export-option-inner">
+                       
+                        <span class="export-option-name">TXT</span>
+                    </div>
+                </label>
+                <label class="export-option-card">
+                    <input type="radio" name="exportFormat" value="json">
+                    <div class="export-option-inner">
+                   
+                        <span class="export-option-name">JSON</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="export-group">
+            <div class="export-group-label">Content</div>
+            <div class="export-options-row export-content-options">
+                <label class="export-option-card">
+                    <input type="radio" name="exportContent" value="names" checked>
+                    <div class="export-option-inner">
+                     
+                        <span class="export-option-name">Names Only</span>
+                    </div>
+                </label>
+                <label class="export-option-card">
+                    <input type="radio" name="exportContent" value="links">
+                    <div class="export-option-inner">
+                      
+                        <span class="export-option-name">Links Only</span>
+                    </div>
+                </label>
+                <label class="export-option-card">
+                    <input type="radio" name="exportContent" value="both">
+                    <div class="export-option-inner">
+                     
+                        <span class="export-option-name">Names + Links</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="export-preview" id="exportPreview"></div>
+    </div>
+
+    <div class="export-modal-footer">
+        <button class="export-cancel-btn" onclick="closeExportModal()">Cancel</button>
+        <button class="export-download-btn" onclick="doExport()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+        </button>
+    </div>
+</div>
+
+    <button class="back-button" id="backButton" onclick="handleBack()" style="display:none;">Back</button>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <h1>Just one episode...</h1>
+                <p>Discover your next favorite anime</p>
+            </div>
+        </div>
+
+        <!-- Favorites Section (home) -->
+        <div class="favorites-section" id="favoritesSection">
+            <h2 class="section-title">Select Your Favorite Animes</h2>
+
+            <div class="search-container" style="position: relative;">
+                <input type="text" class="search-input" id="animeSearch" placeholder="Search for an anime..." autocomplete="off">
+                <button class="blacklist-button" id="blacklistButton" onclick="openBlacklistModal()" title="Manage Blacklist">
+                    🗑️
+                    <span class="blacklist-counter" id="blacklistCounter">0</span>
+                </button>
+                <div class="blacklist-modal" id="blacklistModal">
+                    <div class="blacklist-content">
+                        <div class="blacklist-header">
+                            <h2 class="blacklist-title">Blacklisted Animes</h2>
+                            <button class="blacklist-close" onclick="closeBlacklistModal()">×</button>
+                        </div>
+                        <div class="blacklist-list" id="blacklistList"></div>
+                        <div class="blacklist-actions">
+                            <button class="clear-blacklist-btn" onclick="clearBlacklist()">Clear All Blacklist</button>
+                        </div>
+                    </div>
+                </div>
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     style="width:20px;height:20px;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#888;">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <div class="anime-dropdown" id="animeDropdown"></div>
+            </div>
+
+            <div class="favorites-list" id="favoritesList">
+                <div class="empty-state">No favorites selected yet. Search and add some animes!</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="getRecommendations()">Get Recommendations</button>
+                <button class="btn btn-secondary" onclick="clearFavorites()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="recommendations-section" id="recommendationsSection">
+            <div class="favorites-section">
+                <h2 class="section-title">Recommended for You</h2>
+                <div class="filter-container">
+                    <div class="filter-buttons">
+                        <button class="filter-btn" data-filter="show_sequels" onclick="toggleFilter(this)">Sequels</button>
+                        <button class="filter-btn active" data-filter="show_movies" onclick="toggleFilter(this)">Movies</button>
+                        <button class="filter-btn active" data-filter="show_tv" onclick="toggleFilter(this)">TV Series</button>
+                        <button class="filter-btn" data-filter="show_ova" onclick="toggleFilter(this)">OVA/ONA/SPECIAL</button>
+                    </div>
+                    <button class="apply-filters-btn" onclick="applyFilters()">Apply Filters</button>
+                </div>
+                <div class="recommendations-grid" id="recommendationsGrid"></div>
+            </div>
+        </div>
+
+        <!-- Plan to Watch Section -->
+        <div class="ptw-section" id="ptwSection">
+            <div class="favorites-section">
+                <h2 class="section-title">Plan to Watch</h2>
+                <div class="recommendations-grid" id="ptwGrid"></div>
+            </div>
+        </div>
+
+        <div class="about-section" id="aboutSection">
+            <div class="about-content">
+                <div class="about-item">
+                    <h3>About the Model</h3>
+                    <p>Recbert AI implements a BERT-based approach to handle anime recommendation tasks. Unlike other systems, it takes only users' favorite anime titles as input, rather than ratings. I believe the BERT model handled the recommendation task very well, including effectively addressing the cold start problem by generating meaningful recommendations even with limited user data. The model also ranks sequels and prequels higher in the recommendation list, which indicates that it has effectively learned the relationships between anime titles.</p>
+                </div>
+                <div class="about-item">
+                    <h3>Purpose</h3>
+                    <p>This app was developed with the aim of helping people discover new anime and enjoy their viewing experience. By shifting the focus from numeric ratings to users' actual favorites, the model seeks to capture deeper patterns of preference and better reflect individual taste. An anime was considered a favorite for that user if it received a rating of at least 7/10 by that user.
+                    Explore how a transformer-based NLP model like BERT performs when used for anime recommendations, and see the results yourself!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allAnimes = [];
+        let malLogoUrl = '';
+        let currentTheme = 'purple';
+        let watchlist = [];
+        let currentRecommendations = [];
+
+        let previousSection = 'favorites';
+
+
+        function showSection(section) {
+            document.getElementById('favoritesSection').style.display    = 'none';
+            document.getElementById('recommendationsSection').style.display = 'none';
+            document.getElementById('ptwSection').style.display          = 'none';
+            document.getElementById('aboutSection').style.display        = 'none';
+            document.getElementById('backButton').style.display          = 'none';
+
+            if (section === 'favorites') {
+                document.getElementById('favoritesSection').style.display = 'block';
+                document.getElementById('aboutSection').style.display     = 'block';
+            } else if (section === 'recommendations') {
+                document.getElementById('recommendationsSection').style.display = 'block';
+                document.getElementById('backButton').style.display = 'block';
+                document.getElementById('backButton').textContent = 'Back to Favorites';
+            } else if (section === 'ptw') {
+                document.getElementById('ptwSection').style.display = 'block';
+                document.getElementById('backButton').style.display = 'block';
+                document.getElementById('backButton').textContent = previousSection === 'recommendations'
+                    ? 'Back to Recommendations'
+                    : 'Back to Favorites';
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function handleBack() {
+            const recVisible = document.getElementById('recommendationsSection').style.display === 'block';
+            const ptwVisible = document.getElementById('ptwSection').style.display === 'block';
+
+            if (ptwVisible) {
+                if (previousSection === 'recommendations') {
+                    showSection('recommendations');
+                } else {
+                    showSection('favorites');
+                }
+            } else if (recVisible) {
+                showSection('favorites');
+            }
+        }
+
+        function showPtwSection() {
+            const recVisible = document.getElementById('recommendationsSection').style.display === 'block';
+            previousSection = recVisible ? 'recommendations' : 'favorites';
+            renderPtwGrid();
+            showSection('ptw');
+        }
+
+
+        function loadWatchlist() {
+            const saved = localStorage.getItem('animePlanToWatch');
+            if (saved) watchlist = JSON.parse(saved);
+            updatePtwBadge();
+        }
+
+        function saveWatchlist() {
+            localStorage.setItem('animePlanToWatch', JSON.stringify(watchlist));
+            updatePtwBadge();
+        }
+
+        function updatePtwBadge() {
+            const badge = document.getElementById('ptwTopBadge');
+            if (badge) badge.textContent = watchlist.length;
+        }
+
+        function addToWatchlist(event, animeId) {
+            event.stopPropagation();
+            const anime = currentRecommendations.find(a => a.id === animeId);
+            if (!anime) return;
+
+            const btn = event.currentTarget;
+
+            if (watchlist.find(a => a.id === animeId)) {
+                removeFromWatchlist(animeId);
+                btn.classList.remove('added');
+                btn.innerHTML = `Plan to Watch`;
+                return;
+            }
+
+            watchlist.push({
+                id: anime.id,
+                name: anime.name,
+                image_url: anime.image_url || '',
+                mal_url: anime.mal_url || '',
+                genres: anime.genres || []
+            });
+            saveWatchlist();
+
+            btn.classList.add('added');
+            btn.innerHTML = `
+                <span class="ptw-btn-text-added">Added</span>
+                <span class="ptw-btn-text-remove">Remove</span>
+            `;
+        }
+
+        function removeFromWatchlist(animeId) {
+            watchlist = watchlist.filter(a => a.id !== animeId);
+            saveWatchlist();
+            if (document.getElementById('ptwSection').style.display === 'block') {
+                renderPtwGrid();
+            }
+        }
+
+        function renderPtwGrid() {
+            const grid = document.getElementById('ptwGrid');
+            if (!grid) return;
+
+            if (watchlist.length === 0) {
+                grid.innerHTML = '<div class="ptw-empty-state">No animes in your Plan to Watch list yet.<br>Add some from the recommendations!</div>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            watchlist.forEach((anime, index) => {
+                const imageEl = anime.image_url
+                    ? `<img src="${anime.image_url}" alt="${anime.name}" class="anime-image" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+                    : '';
+                const placeholderEl = anime.image_url
+                    ? `<div class="no-image-placeholder" style="display:none;">🎌</div>`
+                    : `<div class="no-image-placeholder">🎌</div>`;
+
+                const malButton = anime.mal_url
+                    ? `<a href="${anime.mal_url}" target="_blank" class="mal-button" onclick="event.stopPropagation()">
+                        ${malLogoUrl ? `<img src="${malLogoUrl}" alt="MAL" class="mal-logo">` : '🔗'}
+                        View on MyAnimeList
+                       </a>`
+                    : `<div class="mal-message">MyAnimeList link not available</div>`;
+
+                const genresEl = anime.genres && anime.genres.length > 0
+                    ? `<div class="genres-container-front">
+                        ${anime.genres.slice(0, 3).map(g => `<span class="genre-tag-front">${g}</span>`).join('')}
+                       </div>`
+                    : '';
+
+                const div = document.createElement('div');
+                div.className = 'anime-card-wrapper';
+                div.style.animationDelay = `${index * 0.1}s`;
+                div.innerHTML = `
+                    <div class="ptw-drag-handle" title="Sürükleyerek sırala">
+        <svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="3" cy="4" r="2"/><circle cx="11" cy="4" r="2"/>
+            <circle cx="3" cy="11" r="2"/><circle cx="11" cy="11" r="2"/>
+            <circle cx="3" cy="18" r="2"/><circle cx="11" cy="18" r="2"/>
+        </svg>
+    </div>
+                    <div class="anime-rank"></div>
+                    <div class="anime-card" onclick="flipCard(this)">
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <div class="anime-image-container">
+                                    ${imageEl}
+                                    ${placeholderEl}
+                                </div>
+                                <div class="anime-info">
+                                    <div class="anime-name">${anime.name}</div>
+                                    <div class="anime-bottom-section">${genresEl}</div>
+                                    <div class="flip-hint">Click card to see MyAnimeList link →</div>
+                                    <div class="card-action-row">
+                                        <button class="ptw-card-remove-btn" onclick="removeFromWatchlistAndRefresh(${anime.id}); event.stopPropagation();">
+                                            Remove from List
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-back">
+                                <div class="mal-button-container">${malButton}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(div);
+            });
+
+            grid.innerHTML = '';
+grid.appendChild(fragment);
+initPtwDragDrop();
+        }
+
+        function removeFromWatchlistAndRefresh(animeId) {
+            removeFromWatchlist(animeId);
+            const btn = document.querySelector(`[data-anime-id="${animeId}"] .plan-to-watch-btn`);
+            if (btn) {
+                btn.classList.remove('added');
+                btn.innerHTML = `Plan to Watch`;
+            }
+        }
+
+
+        function initializePage() {
+            document.documentElement.classList.add('loaded');
+            setTimeout(() => {
+                const loader = document.getElementById('pageLoader');
+                loader.classList.add('hidden');
+                setTimeout(() => { loader.style.display = 'none'; }, 500);
+            }, 300);
+        }
+
+        function preloadCriticalResources() {
+            ['purple'].forEach(theme => {
+                const link = document.createElement('link');
+                link.rel = 'preload'; link.as = 'style';
+                link.href = `/static/${theme}theme.css`;
+                document.head.appendChild(link);
+            });
+        }
+
+        function toggleThemeOptions() {
+            const el = document.getElementById('themeOptions');
+            if (el) el.classList.toggle('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.theme-switcher')) {
+                const el = document.getElementById('themeOptions');
+                if (el) el.classList.remove('show');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            preloadCriticalResources();
+            loadBlacklist();
+            loadWatchlist();
+            loadFavorites();
+            loadMalLogo();
+
+            document.getElementById('aboutSection').style.display = 'block';
+
+            const searchInput = document.getElementById('animeSearch');
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+                searchTimeout = setTimeout(() => {
+                    if (query.length > 0) searchAnimes(query);
+                    else hideDropdown();
+                }, 300);
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.search-container')) hideDropdown();
+            });
+        });
+
+
+        async function loadMalLogo() {
+            try {
+                const cached = localStorage.getItem('malLogoUrl');
+                if (cached) { malLogoUrl = cached; return; }
+                const res = await fetch('/api/mal_logo');
+                const data = await res.json();
+                if (data.success) {
+                    malLogoUrl = data.logo_url;
+                    localStorage.setItem('malLogoUrl', malLogoUrl);
+                }
+            } catch (e) { console.error('Error loading MAL logo:', e); }
+        }
+
+
+        let searchCache = new Map();
+        async function searchAnimes(query) {
+            try {
+                if (searchCache.has(query)) { showDropdown(searchCache.get(query)); return; }
+                const res = await fetch(`/api/search_animes?q=${encodeURIComponent(query)}`);
+                const animes = await res.json();
+                searchCache.set(query, animes);
+                if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value);
+                showDropdown(animes);
+            } catch (e) { console.error('Error searching:', e); }
+        }
+
+        function showDropdown(animes) {
+            const dropdown = document.getElementById('animeDropdown');
+            requestAnimationFrame(() => {
+                dropdown.innerHTML = '';
+                dropdown.style.display = 'block';
+                const fragment = document.createDocumentFragment();
+                if (animes.length === 0) {
+                    const opt = document.createElement('div');
+                    opt.className = 'anime-option';
+                    opt.textContent = 'No animes found';
+                    fragment.appendChild(opt);
+                } else {
+                    animes.slice(0, 30).forEach(anime => {
+                        const opt = document.createElement('div');
+                        opt.className = 'anime-option';
+                        opt.textContent = anime[1];
+                        opt.onclick = () => addToFavorites(anime[0], anime[1]);
+                        fragment.appendChild(opt);
+                    });
+                }
+                dropdown.appendChild(fragment);
+                setTimeout(() => dropdown.classList.add('show'), 50);
+            });
+        }
+
+        function hideDropdown() {
+            const dropdown = document.getElementById('animeDropdown');
+            dropdown.classList.remove('show');
+            setTimeout(() => { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }, 300);
+        }
+
+
+        async function addToFavorites(animeId, animeName) {
+            try {
+                const res = await fetch('/api/add_favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anime_id: animeId, anime_name: animeName })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadFavorites();
+                    document.getElementById('animeSearch').value = '';
+                    hideDropdown();
+                } else { showMessage("Error", 'error'); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function removeFromFavorites(animeId) {
+            try {
+                const res = await fetch('/api/remove_favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anime_id: animeId })
+                });
+                const result = await res.json();
+                if (result.success) loadFavorites();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadFavorites() {
+            try {
+                const res = await fetch('/api/get_favorites');
+                displayFavorites(await res.json());
+            } catch (e) { console.error(e); }
+        }
+
+        function displayFavorites(favorites) {
+            const list = document.getElementById('favoritesList');
+            requestAnimationFrame(() => {
+                if (favorites.length === 0) {
+                    list.innerHTML = '<div class="empty-state">No favorites selected yet. Search and add some animes!</div>';
+                } else {
+                    const fragment = document.createDocumentFragment();
+                    favorites.forEach(anime => {
+                        const div = document.createElement('div');
+                        div.className = 'favorite-tag';
+                        div.innerHTML = `<span>${anime.name}</span><button class="remove-btn" onclick="removeFromFavorites(${anime.id})">×</button>`;
+                        fragment.appendChild(div);
+                    });
+                    list.innerHTML = '';
+                    list.appendChild(fragment);
+                }
+            });
+        }
+
+        async function clearFavorites() {
+            try {
+                const res = await fetch('/api/clear_favorites', { method: 'POST' });
+                const result = await res.json();
+                if (result.success) loadFavorites();
+            } catch (e) { console.error(e); }
+        }
+
+
+        async function getRecommendations() {
+            const grid = document.getElementById('recommendationsGrid');
+            grid.innerHTML = `<div class="loading"><div class="spinner"></div><div>Getting your recommendations...</div></div>`;
+            showSection('recommendations');
+
+            try {
+                const res = await fetch('/api/get_recommendations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filters: currentFilters,
+                        blacklisted_animes: blacklistedAnimes.map(a => a.id)
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    displayRecommendations(result.recommendations);
+                } else {
+                    grid.innerHTML = `<div class="loading"><div style="color:#ff6b6b;">${result.message}</div></div>`;
+                }
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = `<div class="loading"><div style="color:#ff6b6b;">Error getting recommendations</div></div>`;
+            }
+        }
+
+        function displayRecommendations(recommendations) {
+            const grid = document.getElementById('recommendationsGrid');
+            if (recommendations.length === 0) {
+                grid.innerHTML = '<div class="loading">No recommendations found</div>';
+                return;
+            }
+            currentRecommendations = recommendations;
+
+            requestAnimationFrame(() => {
+                const fragment = document.createDocumentFragment();
+                recommendations.forEach((anime, index) => {
+                    const imageEl = anime.image_url
+                        ? `<img src="${anime.image_url}" alt="${anime.name}" class="anime-image" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+                        : '';
+                    const placeholderEl = anime.image_url
+                        ? `<div class="no-image-placeholder" style="display:none;">🎌</div>`
+                        : `<div class="no-image-placeholder">🎌</div>`;
+
+                    const malButton = anime.mal_url
+                        ? `<a href="${anime.mal_url}" target="_blank" class="mal-button">
+                            ${malLogoUrl ? `<img src="${malLogoUrl}" alt="MAL" class="mal-logo">` : '🔗'}
+                            View on MyAnimeList
+                           </a>`
+                        : `<div class="mal-message">MyAnimeList link not available</div>`;
+
+                    const genresEl = anime.genres && anime.genres.length > 0
+                        ? `<div class="genres-container-front">
+                            ${anime.genres.slice(0, 3).map(g => `<span class="genre-tag-front">${g}</span>`).join('')}
+                           </div>`
+                        : '';
+
+                    const inWatchlist = watchlist.find(a => a.id === anime.id);
+                    const ptwBtnHtml = inWatchlist
+                        ? `<button class="plan-to-watch-btn added" onclick="addToWatchlist(event, ${anime.id})">
+                               <span class="ptw-btn-text-added">Added</span>
+                               <span class="ptw-btn-text-remove">Remove</span>
+                           </button>`
+                        : `<button class="plan-to-watch-btn" onclick="addToWatchlist(event, ${anime.id})">
+                               Plan to Watch
+                           </button>`;
+
+                    const div = document.createElement('div');
+                    div.className = 'anime-card-wrapper';
+                    div.style.animationDelay = `${index * 0.1}s`;
+                    div.setAttribute('data-anime-id', anime.id);
+                    div.innerHTML = `
+                        <button class="delete-button" onclick="deleteAnimeCard(event, ${anime.id})" title="Remove from recommendations">🗑️</button>
+                        <div class="anime-rank"></div>
+                        <div class="anime-card" onclick="flipCard(this)">
+                            <div class="card-inner">
+                                <div class="card-front">
+                                    <div class="anime-image-container">
+                                        ${imageEl}
+                                        ${placeholderEl}
+                                    </div>
+                                    <div class="anime-info">
+                                        <div class="anime-name">${anime.name}</div>
+                                        <div class="anime-bottom-section">${genresEl}</div>
+                                        <div class="flip-hint">Click card to see MyAnimeList link →</div>
+                                        <div class="card-action-row">
+                                            <button class="already-watched-btn" onclick="addToFavoritesFromRecommendations(event, ${anime.id}, '${anime.name.replace(/'/g, "\\'")}')">
+                                                Already Watched & Liked
+                                            </button>
+                                            ${ptwBtnHtml}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-back">
+                                    <div class="mal-button-container">${malButton}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    fragment.appendChild(div);
+                });
+
+                grid.innerHTML = '';
+                grid.appendChild(fragment);
+            });
+        }
+
+
+        function flipCard(card) {
+            const cardInner  = card.querySelector('.card-inner');
+            const scoreEl    = card.querySelector('.anime-score');
+            const watchedBtn = card.querySelector('.already-watched-btn');
+            const planBtn    = card.querySelector('.plan-to-watch-btn');
+
+            if (cardInner.classList.contains('flipped')) {
+                cardInner.classList.remove('flipped');
+                if (scoreEl)    scoreEl.classList.add('hidden');
+                if (watchedBtn) watchedBtn.classList.add('hidden');
+                if (planBtn)    planBtn.classList.add('hidden');
+                setTimeout(() => {
+                    if (scoreEl)    scoreEl.classList.remove('hidden');
+                    if (watchedBtn) watchedBtn.classList.remove('hidden');
+                    if (planBtn)    planBtn.classList.remove('hidden');
+                }, 300);
+            } else {
+                cardInner.classList.add('flipped');
+            }
+
+            const malBtn = card.querySelector('.mal-button');
+            if (malBtn) malBtn.addEventListener('click', e => e.stopPropagation());
+        }
+
+        function showMessage(message, type) { alert(message); }
+
+        async function addToFavoritesFromRecommendations(event, animeId, animeName) {
+            event.stopPropagation();
+            try {
+                const res = await fetch('/api/add_favorite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anime_id: animeId, anime_name: animeName })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showSection('favorites');
+                    loadFavorites();
+                    getRecommendations();
+                } else {
+                    showMessage("This anime is already in your favorites!", 'info');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+
+        let currentFilters = { show_sequels: false, show_movies: true, show_tv: true, show_ova: false };
+
+        function toggleFilter(button) {
+            const name = button.getAttribute('data-filter');
+            const active = button.classList.contains('active');
+            button.classList.toggle('active', !active);
+            currentFilters[name] = !active;
+        }
+
+        function applyFilters() { getRecommendations(); }
+
+        document.addEventListener('visibilitychange', function() {
+            document.body.style.animationPlayState = document.hidden ? 'paused' : 'running';
+        });
+
+
+        function deleteAnimeCard(event, animeId) {
+            event.stopPropagation();
+            const wrapper = event.target.closest('.anime-card-wrapper');
+            const name    = wrapper.querySelector('.anime-name').textContent;
+            addToBlacklist(animeId, name);
+            wrapper.style.transform  = 'scale(0.8)';
+            wrapper.style.opacity    = '0';
+            wrapper.style.transition = 'all 0.3s ease';
+            setTimeout(() => {
+                wrapper.remove();
+                document.querySelectorAll('#recommendationsGrid .anime-card-wrapper').forEach((c, i) => {
+                    c.style.animationDelay = `${i * 0.1}s`;
+                });
+                getRecommendations();
+            }, 300);
+        }
+
+
+        let blacklistedAnimes = [];
+
+        function loadBlacklist() {
+            const saved = localStorage.getItem('blacklistedAnimes');
+            if (saved) blacklistedAnimes = JSON.parse(saved);
+            updateBlacklistCounter();
+        }
+
+        function saveBlacklist() {
+            localStorage.setItem('blacklistedAnimes', JSON.stringify(blacklistedAnimes));
+            updateBlacklistCounter();
+        }
+
+        function updateBlacklistCounter() {
+            const counter = document.getElementById('blacklistCounter');
+            const button  = document.getElementById('blacklistButton');
+            if (blacklistedAnimes.length > 0) {
+                counter.textContent = blacklistedAnimes.length;
+                button.classList.add('show');
+            } else {
+                counter.textContent = '0';
+                button.classList.remove('show');
+            }
+        }
+
+        function addToBlacklist(animeId, animeName) {
+            if (blacklistedAnimes.findIndex(a => a.id === animeId) === -1) {
+                blacklistedAnimes.push({ id: animeId, name: animeName });
+                saveBlacklist();
+            }
+        }
+
+        function displayBlacklistItems() {
+            const list = document.getElementById('blacklistList');
+            if (blacklistedAnimes.length === 0) {
+                list.innerHTML = '<div class="empty-blacklist">No animes in blacklist</div>';
+                return;
+            }
+            const fragment = document.createDocumentFragment();
+            blacklistedAnimes.forEach(anime => {
+                const div = document.createElement('div');
+                div.className = 'blacklist-item';
+                div.innerHTML = `
+                    <span class="blacklist-name">${anime.name}</span>
+                    <button class="remove-blacklist-btn" onclick="removeFromBlacklist(${anime.id})">Remove</button>
+                `;
+                fragment.appendChild(div);
+            });
+            list.innerHTML = '';
+            list.appendChild(fragment);
+        }
+
+        function removeFromBlacklist(animeId) {
+            blacklistedAnimes = blacklistedAnimes.filter(a => a.id !== animeId);
+            saveBlacklist();
+            displayBlacklistItems();
+        }
+
+        function showCustomConfirm(title, message, onConfirm) {
+            const modal = document.createElement('div');
+            modal.className = 'custom-confirm-modal';
+            modal.innerHTML = `
+                <div class="custom-confirm-content">
+                    <div class="confirm-header"><h3>${title}</h3></div>
+                    <div class="confirm-message"><p>${message}</p></div>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel" onclick="closeCustomConfirm()">Cancel</button>
+                        <button class="confirm-btn confirm" onclick="confirmAction()">Yes, Clear All</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            window.confirmAction = () => { onConfirm(); closeCustomConfirm(); };
+            window.closeCustomConfirm = () => {
+                modal.remove();
+                delete window.confirmAction;
+                delete window.closeCustomConfirm;
+            };
+            setTimeout(() => modal.classList.add('show'), 50);
+        }
+
+        function clearBlacklist() {
+            showCustomConfirm(
+                'Clear All Blacklist',
+                'Are you sure you want to clear all blacklisted animes?',
+                () => { blacklistedAnimes = []; saveBlacklist(); displayBlacklistItems(); }
+            );
+        }
+
+        function openBlacklistModal() {
+            displayBlacklistItems();
+            document.getElementById('blacklistModal').classList.add('show');
+        }
+
+        function closeBlacklistModal() {
+            document.getElementById('blacklistModal').classList.remove('show');
+        }
+function syncExportBtnVisibility() {
+    const btn = document.getElementById('ptwExportBtn');
+    if (!btn) return;
+    if (watchlist.length > 0) btn.classList.add('visible');
+    else btn.classList.remove('visible');
+}
+
+const _origSaveWatchlist = saveWatchlist;
+saveWatchlist = function() {
+    _origSaveWatchlist();
+    syncExportBtnVisibility();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(syncExportBtnVisibility, 100);
+});
+
+function openExportModal() {
+    if (watchlist.length === 0) return;
+    document.getElementById('exportModalOverlay').classList.add('show');
+    document.getElementById('exportModal').classList.add('show');
+    updateExportPreview();
+
+    document.querySelectorAll('input[name="exportFormat"], input[name="exportContent"]')
+        .forEach(r => r.addEventListener('change', updateExportPreview));
+}
+
+function closeExportModal() {
+    document.getElementById('exportModalOverlay').classList.remove('show');
+    document.getElementById('exportModal').classList.remove('show');
+}
+
+function getExportSelections() {
+    const format  = document.querySelector('input[name="exportFormat"]:checked')?.value  || 'txt';
+    const content = document.querySelector('input[name="exportContent"]:checked')?.value || 'names';
+    return { format, content };
+}
+
+function buildExportContent(format, content) {
+    if (format === 'json') {
+        const data = watchlist.map(a => {
+            if (content === 'names') return { name: a.name };
+            if (content === 'links') return { mal_url: a.mal_url || '' };
+            return { name: a.name, mal_url: a.mal_url || '' };
+        });
+        return JSON.stringify(data, null, 2);
+    }
+    return watchlist.map((a, i) => {
+        const num = `${i + 1}. `;
+        if (content === 'names') return num + a.name;
+        if (content === 'links') return num + (a.mal_url || 'N/A');
+        return num + a.name + '  |  ' + (a.mal_url || 'N/A');
+    }).join('\n');
+}
+
+function updateExportPreview() {
+    const { format, content } = getExportSelections();
+    const preview = document.getElementById('exportPreview');
+    if (!preview) return;
+    const full = buildExportContent(format, content);
+    const lines = full.split('\n').slice(0, 6);
+    const truncated = watchlist.length > 6 ? lines.join('\n') + '\n...' : lines.join('\n');
+    preview.textContent = truncated;
+}
+
+function doExport() {
+    const { format, content } = getExportSelections();
+    const text = buildExportContent(format, content);
+    const mimeType = format === 'json' ? 'application/json' : 'text/plain';
+    const fileName = `plan-to-watch.${format}`;
+
+    const blob = new Blob([text], { type: mimeType });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    closeExportModal();
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeExportModal();
+});
+(function () {
+    let dragging = null;
+    let dragClone = null;
+    let dragStartIdx = -1;
+    let dropTargetIdx = -1;
+    let offsetX = 0, offsetY = 0;
+    let scrollSpeed = 0;
+let scrollRAF = null;
+const SCROLL_ZONE = 100;
+const SCROLL_MAX  = 18;
+
+    function getCards() {
+        return Array.from(document.querySelectorAll('#ptwGrid .anime-card-wrapper'));
+    }
+
+    window.initPtwDragDrop = function () {
+        const grid = document.getElementById('ptwGrid');
+        if (!grid) return;
+        grid.querySelectorAll('.ptw-drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', onDragStart, { passive: false });
+            handle.addEventListener('touchstart', onDragStart, { passive: false });
+        });
+    };
+
+    function onDragStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const card = e.currentTarget.closest('.anime-card-wrapper');
+        const cards = getCards();
+        dragStartIdx = cards.indexOf(card);
+        dropTargetIdx = dragStartIdx;
+
+        const rect = card.getBoundingClientRect();
+        const pt = e.touches ? e.touches[0] : e;
+        offsetX = pt.clientX - rect.left;
+        offsetY = pt.clientY - rect.top;
+
+        dragClone = card.cloneNode(true);
+        Object.assign(dragClone.style, {
+            position: 'fixed', left: rect.left + 'px', top: rect.top + 'px',
+            width: rect.width + 'px', height: rect.height + 'px',
+            zIndex: '9999', pointerEvents: 'none', opacity: '0.92', margin: '0',
+            transform: 'scale(1.05) rotate(1.5deg)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)', borderRadius: '12px',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+        });
+        document.body.appendChild(dragClone);
+
+        card.classList.add('ptw-dragging');
+        dragging = card;
+
+        document.addEventListener('mousemove', onDragMove, { passive: false });
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('mouseup', onDragEnd);
+        document.addEventListener('touchend', onDragEnd);
+    }
+
+    function onDragMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const pt = e.touches ? e.touches[0] : e;
+        const cx = pt.clientX, cy = pt.clientY;
+
+        dragClone.style.left = (cx - offsetX) + 'px';
+        dragClone.style.top  = (cy - offsetY) + 'px';
+
+        const cards = getCards();
+        let newIdx = dragStartIdx;
+        cards.forEach((c, i) => {
+            if (c === dragging) return;
+            const r = c.getBoundingClientRect();
+            if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) newIdx = i;
+        });
+
+        if (newIdx !== dropTargetIdx) {
+            dropTargetIdx = newIdx;
+            cards.forEach(c => c.classList.remove('ptw-shift-up', 'ptw-shift-down'));
+            if (dropTargetIdx < dragStartIdx) {
+                for (let i = dropTargetIdx; i < dragStartIdx; i++) cards[i].classList.add('ptw-shift-down');
+            } else if (dropTargetIdx > dragStartIdx) {
+                for (let i = dragStartIdx + 1; i <= dropTargetIdx; i++) cards[i].classList.add('ptw-shift-up');
+            }
+        }
+    }
+
+    function onDragEnd() {
+        if (!dragging) return;
+        const cards = getCards();
+
+        if (dropTargetIdx !== dragStartIdx && dropTargetIdx >= 0) {
+            const targetRect = cards[dropTargetIdx].getBoundingClientRect();
+            Object.assign(dragClone.style, {
+                transition: 'all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                left: targetRect.left + 'px', top: targetRect.top + 'px',
+                transform: 'scale(1) rotate(0deg)', opacity: '0'
+            });
+            setTimeout(() => dragClone && dragClone.remove(), 230);
+
+            const moved = watchlist.splice(dragStartIdx, 1)[0];
+            watchlist.splice(dropTargetIdx, 0, moved);
+            saveWatchlist();
+            setTimeout(() => renderPtwGrid(), 220);
+        } else {
+            dragClone && dragClone.remove();
+            dragging.classList.remove('ptw-dragging');
+        }
+
+        cards.forEach(c => c.classList.remove('ptw-shift-up', 'ptw-shift-down', 'ptw-dragging'));
+        dragging = null; dragClone = null; dragStartIdx = -1; dropTargetIdx = -1;
+
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        document.removeEventListener('touchend', onDragEnd);
+    }
+})();
+    </script>
+</body>
+</html>

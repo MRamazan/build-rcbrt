@@ -1,0 +1,38 @@
+{
+  "name": "recbert-ai",
+  "version": "1.0.0",
+  "description": "Recbert AI — BERT-based Anime Recommendation System",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --dev --no-sandbox",
+    "build": "electron-builder --win --x64"
+  },
+  "keywords": ["anime", "recommendation", "bert", "ai"],
+  "author": "Recbert",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.recbert.ai",
+    "asar": false,
+    "productName": "Recbert AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "config.json"
+    ],
+    "win": {
+      "target": {
+        "target": "dir"
+      },
+      "icon": "renderer/assets/icon.ico"
+    }
+  }
+}
